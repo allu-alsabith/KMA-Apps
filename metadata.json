@@ -1,0 +1,10 @@
+{
+  "name": "Remix2 Attendo Hypermarket 3-App Suite",
+  "description": "Enterprise multi-company hypermarket ecosystem: Store Admin HR Portal, Attendo Face AI biometric tablet kiosk, Staff Mobile App, and dedicated Apps Manager for company registration and app provisioning.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
