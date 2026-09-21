@@ -17,10 +17,20 @@ import {
   Layers,
   Lock,
   Tablet,
-  LayoutGrid
+  LayoutGrid,
+  FileCode,
+  PackageCheck,
+  ArrowDownToLine,
+  Compass
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { 
+  downloadAndroidProjectBundle, 
+  downloadIosWebClipProfile, 
+  getCloudApkBuilderUrl,
+  APP_CONFIGS 
+} from '../utils/appPackager';
 
 export type AppInstallTarget = 'STAFF' | 'KIOSK' | 'ADMIN' | 'MANAGER';
 
@@ -42,7 +52,10 @@ export const InstallModal: React.FC<InstallModalProps> = ({
   const [selectedApp, setSelectedApp] = useState<AppInstallTarget>(initialApp);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
-  const [osTab, setOsTab] = useState<'IOS' | 'ANDROID' | 'TABLET_LOCK'>('IOS');
+  const [osTab, setOsTab] = useState<'APK_ANDROID' | 'IOS' | 'TABLET_LOCK'>('APK_ANDROID');
+  const [isPackagingAndroid, setIsPackagingAndroid] = useState<boolean>(false);
+  const [androidDownloadSuccess, setAndroidDownloadSuccess] = useState<boolean>(false);
+  const [iosDownloadSuccess, setIosDownloadSuccess] = useState<boolean>(false);
   
   const { isInstallable, isInstalled, install } = usePWAInstall();
 
@@ -115,6 +128,34 @@ export const InstallModal: React.FC<InstallModalProps> = ({
       return;
     }
     window.location.href = activeAppUrl;
+  };
+
+  const handleDownloadAndroidZip = async () => {
+    try {
+      setIsPackagingAndroid(true);
+      await downloadAndroidProjectBundle(selectedApp, activeAppUrl);
+      setAndroidDownloadSuccess(true);
+      setTimeout(() => setAndroidDownloadSuccess(false), 3500);
+    } catch (err) {
+      console.error('Failed to package Android zip', err);
+    } finally {
+      setIsPackagingAndroid(false);
+    }
+  };
+
+  const handleDownloadIosProfile = () => {
+    try {
+      downloadIosWebClipProfile(selectedApp, activeAppUrl);
+      setIosDownloadSuccess(true);
+      setTimeout(() => setIosDownloadSuccess(false), 3500);
+    } catch (err) {
+      console.error('Failed to generate iOS WebClip profile', err);
+    }
+  };
+
+  const handleOpenCloudApk = () => {
+    const url = getCloudApkBuilderUrl(activeAppUrl);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -369,6 +410,136 @@ export const InstallModal: React.FC<InstallModalProps> = ({
 
         </div>
 
+        {/* Direct Download Standalone Android APK & iOS Packages */}
+        <div className="mb-5 rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-slate-950 to-black border border-white/15 shadow-xl">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <ArrowDownToLine className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white flex items-center gap-1.5">
+                  <span>Download Standalone App ({APP_CONFIGS[selectedApp].name})</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                    APK &bull; iOS &bull; PWA
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  Package and download like an Android app created in Google AI Studio
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* ANDROID APK CARD */}
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-emerald-500/30 hover:border-emerald-500/60 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-black">
+                    <Smartphone className="w-4 h-4" />
+                    <span>Android APK &amp; Studio Package</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-400 bg-black/40 px-1.5 py-0.5 rounded">
+                    {APP_CONFIGS[selectedApp].packageName}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
+                  Generates ready-to-build Android package with camera &amp; biometric face scanning permissions, Kotlin WebView, and full-screen theme.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {/* Download Android Studio Bundle ZIP */}
+                <button
+                  id="btn-download-android-zip"
+                  onClick={handleDownloadAndroidZip}
+                  disabled={isPackagingAndroid}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {isPackagingAndroid ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                      <span>Generating Android Package...</span>
+                    </>
+                  ) : androidDownloadSuccess ? (
+                    <>
+                      <PackageCheck className="w-4 h-4 text-slate-950" />
+                      <span>Downloaded Android Studio Bundle (.zip)!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>Download Android Project (.zip)</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Build APK in 1-Click via Cloud Builder */}
+                <button
+                  id="btn-open-cloud-apk"
+                  onClick={handleOpenCloudApk}
+                  className="w-full py-2 px-3 rounded-xl liquid-button hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/15 transition-all cursor-pointer"
+                  title="Generate signed APK via PWABuilder cloud in 30 seconds"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Build Signed APK (PWABuilder Cloud)</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400 ml-0.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* APPLE iOS CARD */}
+            <div className="p-3 rounded-2xl bg-white/[0.04] border border-sky-500/30 hover:border-sky-500/60 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5 text-sky-400 text-xs font-black">
+                    <Apple className="w-4 h-4" />
+                    <span>Apple iOS Profile &amp; WebClip</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-slate-400 bg-black/40 px-1.5 py-0.5 rounded">
+                    iPhone / iPad
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">
+                  Download an Apple WebClip configuration profile to install directly onto your iOS Home Screen with custom icon and standalone window.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {/* Download iOS Profile */}
+                <button
+                  id="btn-download-ios-profile"
+                  onClick={handleDownloadIosProfile}
+                  className="w-full py-2.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 active:scale-[0.99] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 cursor-pointer transition-all"
+                >
+                  {iosDownloadSuccess ? (
+                    <>
+                      <PackageCheck className="w-4 h-4 text-slate-950" />
+                      <span>Downloaded iOS Profile (.mobileconfig)!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>Download iOS App Profile (.mobileconfig)</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Direct Safari Share Instructions trigger */}
+                <button
+                  id="btn-view-ios-steps"
+                  onClick={() => setOsTab('IOS')}
+                  className="w-full py-2 px-3 rounded-xl liquid-button hover:bg-white/15 text-white font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/15 transition-all cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Safari &quot;Add to Home Screen&quot; Guide</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Installation & Device Lock Guidelines */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -377,28 +548,28 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             </span>
             <div className="flex items-center gap-1 p-0.5 bg-black/40 rounded-xl border border-white/10 text-xs">
               <button
+                onClick={() => setOsTab('APK_ANDROID')}
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all ${
+                  osTab === 'APK_ANDROID' ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>Android / APK</span>
+              </button>
+              <button
                 onClick={() => setOsTab('IOS')}
                 className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all ${
-                  osTab === 'IOS' ? 'bg-white/20 text-white shadow' : 'text-slate-400 hover:text-white'
+                  osTab === 'IOS' ? 'bg-sky-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 <Apple className="w-3 h-3" />
                 <span>iPhone / iPad</span>
               </button>
-              <button
-                onClick={() => setOsTab('ANDROID')}
-                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all ${
-                  osTab === 'ANDROID' ? 'bg-white/20 text-white shadow' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-3 h-3" />
-                <span>Android / Chrome</span>
-              </button>
               {selectedApp === 'KIOSK' && (
                 <button
                   onClick={() => setOsTab('TABLET_LOCK')}
                   className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-all ${
-                    osTab === 'TABLET_LOCK' ? 'bg-emerald-500 text-black font-bold shadow' : 'text-emerald-400 hover:text-white'
+                    osTab === 'TABLET_LOCK' ? 'bg-amber-500 text-slate-950 font-bold shadow' : 'text-amber-400 hover:text-white'
                   }`}
                 >
                   <Lock className="w-3 h-3" />
@@ -408,9 +579,32 @@ export const InstallModal: React.FC<InstallModalProps> = ({
             </div>
           </div>
 
+          {/* Android / APK Steps */}
+          {osTab === 'APK_ANDROID' && (
+            <div className="liquid-glass rounded-2xl p-3 space-y-2 border border-emerald-500/20 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">1</span>
+                  <p className="text-slate-300 text-[11px]">Tap <strong>Download Android Project (.zip)</strong> above or open link in <strong>Chrome</strong> on Android.</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">2</span>
+                  <p className="text-slate-300 text-[11px]">In Chrome, tap the <strong>three dots (⋮)</strong> menu &rarr; <strong>&quot;Install app&quot;</strong>.</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">3</span>
+                  <p className="text-slate-300 text-[11px]">Android creates a standalone WebAPK in your app drawer with hardware biometric camera access.</p>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400 text-center">
+                For Google Play publishing, use the downloaded Android Studio project or tap <strong>Build Signed APK (PWABuilder Cloud)</strong>.
+              </p>
+            </div>
+          )}
+
           {/* iOS Safari Steps */}
           {osTab === 'IOS' && (
-            <div className="liquid-glass rounded-2xl p-3 space-y-2 border border-white/10 text-xs">
+            <div className="liquid-glass rounded-2xl p-3 space-y-2 border border-sky-500/20 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
                   <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-[10px] mb-1">1</span>
@@ -430,30 +624,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({
                 </div>
               </div>
               <p className="text-[11px] text-slate-400 text-center">
-                App icon will install as <strong>"{selectedApp === 'STAFF' ? 'KMA Staff' : selectedApp === 'KIOSK' ? 'KMA Kiosk' : 'KMA Admin'}"</strong> with standalone full-screen window.
-              </p>
-            </div>
-          )}
-
-          {/* Android Chrome Steps */}
-          {osTab === 'ANDROID' && (
-            <div className="liquid-glass rounded-2xl p-3 space-y-2 border border-white/10 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">1</span>
-                  <p className="text-slate-300 text-[11px]">Open link in <strong>Google Chrome</strong> on Android.</p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">2</span>
-                  <p className="text-slate-300 text-[11px]">Tap the <strong>three dots (⋮)</strong> menu top right.</p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] mb-1">3</span>
-                  <p className="text-slate-300 text-[11px]">Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</p>
-                </div>
-              </div>
-              <p className="text-[11px] text-slate-400 text-center">
-                Installs directly into the Android app drawer with instant launch icon.
+                App icon installs as <strong>&quot;{APP_CONFIGS[selectedApp].name}&quot;</strong> with standalone full-screen window.
               </p>
             </div>
           )}
@@ -467,13 +638,13 @@ export const InstallModal: React.FC<InstallModalProps> = ({
               </div>
               <ul className="space-y-1.5 text-slate-300 text-[11px] pl-2 list-disc list-inside">
                 <li>
-                  <strong>iPad Mount:</strong> After adding to Home Screen, enable <em>iOS Guided Access</em> (Settings → Accessibility → Guided Access). Triple-click the iPad power button to lock the tablet to the entrance door so staff cannot exit the app.
+                  <strong>iPad Mount:</strong> After adding to Home Screen, enable <em>iOS Guided Access</em> (Settings &rarr; Accessibility &rarr; Guided Access). Triple-click the iPad power button to lock the tablet to the entrance door so staff cannot exit the app.
                 </li>
                 <li>
                   <strong>Android Tablet:</strong> Enable <em>App Pinning</em> in Android Settings to prevent navigation outside the Kiosk.
                 </li>
                 <li>
-                  <strong>Manager Passcode:</strong> The Kiosk is protected with a manager PIN (default: <code>9999</code>) to return to Admin settings.
+                  <strong>Manager Passcode:</strong> The Kiosk is protected with a manager PIN to return to Admin settings.
                 </li>
               </ul>
             </div>

@@ -832,7 +832,12 @@ export default function App() {
           onSelectPortal={setCurrentPortal}
           liveTime={liveTime}
           totalPunchesToday={scopedAdminAttendanceLogs.length}
-          onOpenInstallModal={() => openInstallHub('STAFF')}
+          onOpenInstallModal={() => {
+            if (currentPortal === 'KIOSK_FACE') openInstallHub('KIOSK');
+            else if (currentPortal === 'ADMIN_PORTAL') openInstallHub('ADMIN');
+            else if (currentPortal === 'APPS_MANAGER') openInstallHub('MANAGER');
+            else openInstallHub('STAFF');
+          }}
           isFirebaseConnected={isFirebaseLive}
           activeCompany={activeCompany}
           companies={companies}
@@ -988,7 +993,7 @@ export default function App() {
                 setCurrentPortal(portal);
               }
             }}
-            onOpenInstallModal={() => openInstallHub('ADMIN')}
+            onOpenInstallModal={(target) => openInstallHub(target || 'MANAGER')}
             isFirebaseConnected={isFirebaseLive}
             helpRequests={helpRequests}
             onUpdateHelpRequestStatus={handleUpdateHelpRequestStatus}

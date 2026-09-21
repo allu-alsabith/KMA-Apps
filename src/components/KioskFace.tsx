@@ -5,7 +5,6 @@ import {
   CheckCircle2, 
   Sparkles, 
   RefreshCw, 
-  KeyRound, 
   Volume2, 
   VolumeX, 
   Maximize2, 
@@ -193,11 +192,6 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
     avatar: string;
   } | null>(null);
 
-  // Manual PIN Keypad Modal
-  const [showPinModal, setShowPinModal] = useState<boolean>(false);
-  const [pinInput, setPinInput] = useState<string>('');
-  const [pinError, setPinError] = useState<string | null>(null);
-
   // Manager Unlock / Exit PIN Modal
   const [showManagerUnlockModal, setShowManagerUnlockModal] = useState<boolean>(false);
   const [managerUnlockPin, setManagerUnlockPin] = useState<string>('');
@@ -280,7 +274,7 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
   const executePunch = useCallback((
     employee: Employee,
     typeToPunch: PunchType,
-    method: 'KIOSK_FACE' | 'KIOSK_PIN',
+    method: 'KIOSK_FACE' = 'KIOSK_FACE',
     confidence = 0.985
   ) => {
     const isLate = Math.random() > 0.88;
@@ -296,7 +290,7 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
       kioskLocation: `${companySupermarketName} Supermarket • Staff Entrance Terminal`,
       confidenceScore: confidence,
       status: status,
-      notes: `${typeToPunch} punch processed via ${method === 'KIOSK_FACE' ? 'Biometric FaceID' : 'Security PIN keypad'}.`,
+      notes: `${typeToPunch} punch processed via Biometric FaceID.`,
     });
 
     const now = new Date();
@@ -433,65 +427,6 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
     setStaffPunchOptions(null);
   };
 
-  // PIN Keypad Punch Handler
-  const handlePinDigit = (digit: string) => {
-    if (pinInput.length < 4) {
-      const updated = pinInput + digit;
-      setPinInput(updated);
-      setPinError(null);
-
-      if (updated.length === 4) {
-        const found = companyEmployees.find((e) => e.pin === updated);
-        if (found) {
-          setShowPinModal(false);
-          setPinInput('');
-          setMatchedEmployee(found);
-          const score = 0.999;
-          setMatchScore(score);
-
-          const { currentState, lastPunchTime } = getStaffCurrentTodayState(found);
-          const firstName = found.name.split(' ')[0];
-
-          if (currentState === 'NOT_PUNCHED_IN') {
-            setScanningStatus('MATCHED');
-            executePunch(found, 'IN', 'KIOSK_PIN', score);
-          } else if (currentState === 'ON_SHIFT') {
-            setScanningStatus('MATCHED');
-            setStaffPunchOptions({
-              employee: found,
-              currentState: 'ON_SHIFT',
-              lastPunchTime,
-            });
-            if (isSoundEnabled) {
-              soundService.playNotificationTone();
-              soundService.speakConfirmation(`${firstName} verified. Please select Start Break or Punch Out.`);
-            }
-          } else if (currentState === 'ON_BREAK') {
-            setScanningStatus('MATCHED');
-            setStaffPunchOptions({
-              employee: found,
-              currentState: 'ON_BREAK',
-              lastPunchTime,
-            });
-            if (isSoundEnabled) {
-              soundService.playNotificationTone();
-              soundService.speakConfirmation(`Welcome back ${firstName}. Tap End Break to resume shift.`);
-            }
-          }
-        } else {
-          setPinError('Invalid PIN code. Please try again or ask your manager.');
-          soundService.playWarningTone();
-          setPinInput('');
-        }
-      }
-    }
-  };
-
-  const handleClearPin = () => {
-    setPinInput('');
-    setPinError(null);
-  };
-
   // Manager Unlock Modal Handler
   const handleManagerUnlock = (e: React.FormEvent) => {
     e.preventDefault();
@@ -559,42 +494,6 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
               <div className="p-3 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{kioskLoginError}</span>
-              </div>
-            )}
-
-            {/* Company Selection Pills */}
-            {companies.length > 0 && (
-              <div>
-                <label className="text-[11px] font-semibold text-slate-300 block mb-1.5">
-                  Select Supermarket Company
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {companies.map((c) => {
-                    const isSelected =
-                      kioskCompanyCode.toUpperCase() === c.code.toUpperCase() ||
-                      kioskCompanyName.toLowerCase() === c.supermarketName.toLowerCase();
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setKioskCompanyName(c.supermarketName);
-                          setKioskCompanyCode(c.code);
-                          setKioskCompanyPassword(c.password || '');
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
-                            : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span>{c.supermarketName}</span>
-                        <span className="text-[10px] font-mono text-slate-400">({c.code})</span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
@@ -732,16 +631,6 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
             title="Toggle fullscreen tablet view"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
-
-          {/* Fallback PIN Keypad Button */}
-          <button
-            id="kiosk-open-pin-modal"
-            onClick={() => setShowPinModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl liquid-button text-xs font-semibold text-slate-200 cursor-pointer"
-          >
-            <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-            <span>PIN Code</span>
           </button>
 
           {/* Manager Lock / Deactivate Kiosk Terminal */}
@@ -1081,21 +970,13 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
             </div>
           </button>
 
-          <div className="w-full flex items-center justify-between text-xs text-slate-400 px-2 pt-1 border-t border-white/10">
+          <div className="w-full flex items-center justify-center text-xs text-slate-400 px-2 pt-1 border-t border-white/10">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="text-slate-300 font-medium text-[11px]">
-                Biometric Scanner Armed &bull; {companySupermarketName}
+                Biometric Face Scanner Armed &bull; {companySupermarketName}
               </span>
             </div>
-
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="text-amber-400 hover:text-amber-300 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
-            >
-              <KeyRound className="w-3 h-3" />
-              <span>Use Staff PIN</span>
-            </button>
           </div>
         </div>
 
@@ -1128,79 +1009,6 @@ export const KioskFace: React.FC<KioskFaceProps> = ({
           </div>
         )}
       </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* BACKUP PIN KEYPAD MODAL */}
-      {/* ------------------------------------------------------------------ */}
-      {showPinModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="w-full max-w-sm liquid-glass-card rounded-[36px] p-6 flex flex-col items-center shadow-2xl animate-scale-in border border-white/20">
-            
-            <div className="w-12 h-12 rounded-2xl liquid-glass flex items-center justify-center text-amber-400 mb-3 border border-amber-500/30">
-              <KeyRound className="w-6 h-6" />
-            </div>
-
-            <h3 className="text-lg font-bold text-white">Staff PIN Punch</h3>
-            <p className="text-xs text-slate-400 text-center mt-1">
-              Enter your 4-digit staff PIN to punch without camera
-            </p>
-
-            {/* PIN Dots */}
-            <div className="flex items-center gap-3 my-5">
-              {[0, 1, 2, 3].map((idx) => (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 rounded-full border transition-all ${
-                    pinInput.length > idx
-                      ? 'bg-amber-400 border-amber-400 shadow-[0_0_10px_#fbbf24]'
-                      : 'border-white/30 bg-white/5'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {pinError && (
-              <p className="text-xs text-red-400 mb-3 text-center">{pinError}</p>
-            )}
-
-            {/* Numeric Keypad Grid */}
-            <div className="grid grid-cols-3 gap-2.5 w-full max-w-xs">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-                <button
-                  key={digit}
-                  onClick={() => handlePinDigit(digit)}
-                  className="h-14 rounded-2xl liquid-button text-lg font-bold text-white hover:bg-white/15 active:scale-95 transition-all cursor-pointer"
-                >
-                  {digit}
-                </button>
-              ))}
-              <button
-                onClick={handleClearPin}
-                className="h-14 rounded-2xl liquid-pill text-xs font-semibold text-slate-400 hover:text-white cursor-pointer"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => handlePinDigit('0')}
-                className="h-14 rounded-2xl liquid-button text-lg font-bold text-white hover:bg-white/15 cursor-pointer"
-              >
-                0
-              </button>
-              <button
-                onClick={() => {
-                  setShowPinModal(false);
-                  setPinInput('');
-                  setPinError(null);
-                }}
-                className="h-14 rounded-2xl liquid-pill text-xs font-semibold text-red-400 hover:bg-red-500/10 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* STORE MANAGER UNLOCK / DEACTIVATE MODAL */}

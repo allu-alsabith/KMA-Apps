@@ -664,38 +664,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
             </div>
 
-            {/* Quick Demo Pill Selectors */}
-            {companies.length > 0 && (
-              <div className="pt-1">
-                <div className="text-[11px] text-slate-400 font-medium mb-1.5">
-                  Quick Select Supermarket:
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {companies.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setLoginCompanyName(c.supermarketName);
-                        setLoginCompanyCode(c.code);
-                        setLoginCompanyPassword(c.password || 'kma123');
-                        if (adminLoginError) setAdminLoginError(null);
-                      }}
-                      className={`px-2.5 py-1 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                        loginCompanyCode === c.code
-                          ? 'bg-purple-500/30 text-purple-200 border border-purple-500/50 font-bold'
-                          : 'bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10'
-                      }`}
-                    >
-                      <Store className="w-3 h-3 text-purple-400" />
-                      <span>{c.supermarketName}</span>
-                      <span className="text-[10px] font-mono text-amber-400 font-bold">({c.code})</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Submit Button */}
             <button
               id="btn-admin-login-submit"

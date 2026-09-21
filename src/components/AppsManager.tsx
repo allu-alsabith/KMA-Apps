@@ -38,6 +38,7 @@ import {
 import QRCode from 'qrcode';
 import { Company, Employee, AttendanceRecord, AppPortal, HelpRequest } from '../types';
 import { soundService } from '../services/sound';
+import { AppInstallTarget } from './InstallModal';
 
 interface AppsManagerProps {
   companies: Company[];
@@ -51,7 +52,7 @@ interface AppsManagerProps {
   isStandalone?: boolean;
   onExitStandalone?: () => void;
   onLaunchPortal?: (portal: AppPortal) => void;
-  onOpenInstallModal?: () => void;
+  onOpenInstallModal?: (target?: AppInstallTarget) => void;
   isFirebaseConnected?: boolean;
   helpRequests?: HelpRequest[];
   onUpdateHelpRequestStatus?: (id: string, status: HelpRequest['status']) => void;
@@ -801,6 +802,15 @@ export const AppsManager: React.FC<AppsManagerProps> = ({
                     <span>QR Code</span>
                   </button>
                 </div>
+                {onOpenInstallModal && (
+                  <button
+                    onClick={() => onOpenInstallModal('ADMIN')}
+                    className="w-full py-2 px-3 rounded-xl liquid-button bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/30 transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Download App (APK / iOS)</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -889,6 +899,15 @@ export const AppsManager: React.FC<AppsManagerProps> = ({
                     <span>QR Code</span>
                   </button>
                 </div>
+                {onOpenInstallModal && (
+                  <button
+                    onClick={() => onOpenInstallModal('KIOSK')}
+                    className="w-full py-2 px-3 rounded-xl liquid-button bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-sky-500/30 transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Download Kiosk (APK / iOS)</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -977,6 +996,15 @@ export const AppsManager: React.FC<AppsManagerProps> = ({
                     <span>QR Code</span>
                   </button>
                 </div>
+                {onOpenInstallModal && (
+                  <button
+                    onClick={() => onOpenInstallModal('STAFF')}
+                    className="w-full py-2 px-3 rounded-xl liquid-button bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-amber-500/30 transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Download Staff App (APK / iOS)</span>
+                  </button>
+                )}
               </div>
             </div>
 
